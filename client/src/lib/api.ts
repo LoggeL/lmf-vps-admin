@@ -3,13 +3,23 @@
 
 const API_BASE = '/api';
 
+const getAuthHeader = () => {
+  const token = localStorage.getItem('lmf_auth_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  headers.set('Content-Type', 'application/json');
+  
+  const authHeader = getAuthHeader();
+  if (authHeader.Authorization) {
+    headers.set('Authorization', authHeader.Authorization);
+  }
+
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
+    headers,
     credentials: 'include'
   });
 
@@ -18,6 +28,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   // Handle auth errors - redirect to login
   if (res.status === 401) {
+    localStorage.removeItem('lmf_auth_token');
     // Don't redirect if we're already checking auth status
     if (!endpoint.includes('/auth/status')) {
       window.location.href = '/login';
@@ -45,15 +56,27 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   getAuthStatus: () => request<{ needsSetup: boolean; authenticated: boolean }>('/auth/status'),
-  setup: (password: string) => request<{ success: boolean }>('/auth/setup', {
-    method: 'POST',
-    body: JSON.stringify({ password })
-  }),
-  login: (password: string) => request<{ success: boolean }>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ password })
-  }),
-  logout: () => request<{ success: boolean }>('/auth/logout', { method: 'POST' }),
+  setup: async (password: string) => {
+    const res = await request<{ success: boolean; token: string }>('/auth/setup', {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+    if (res.token) localStorage.setItem('lmf_auth_token', res.token);
+    return res;
+  },
+  login: async (password: string) => {
+    const res = await request<{ success: boolean; token: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+    if (res.token) localStorage.setItem('lmf_auth_token', res.token);
+    return res;
+  },
+  logout: async () => {
+    const res = await request<{ success: boolean }>('/auth/logout', { method: 'POST' });
+    localStorage.removeItem('lmf_auth_token');
+    return res;
+  },
 
   // System
   getStats: () => request<any>('/system/stats'),

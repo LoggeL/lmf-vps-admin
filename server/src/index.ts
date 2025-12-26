@@ -16,7 +16,7 @@ import settingsRoutes from './routes/settings';
 
 import { startOpenCodeServer } from './services/opencode';
 import { streamContainerLogs, getContainerLogs } from './services/docker';
-import { getApp } from './db';
+import { getApp, validateAuthToken } from './db';
 
 // Start OpenCode Server
 startOpenCodeServer();
@@ -65,7 +65,7 @@ const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));
 
 // SPA fallback
-app.get('/{*splat}', (req, res) => {
+app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(publicPath, 'index.html'));
   }
@@ -73,13 +73,30 @@ app.get('/{*splat}', (req, res) => {
 
 // Socket.IO authentication
 io.use((socket, next) => {
-  sessionMiddleware(socket.request as any, {} as any, next as any);
+  sessionMiddleware(socket.request as any, {} as any, (err?: any) => {
+    if (err) return next(err);
+    
+    const session = (socket.request as any).session;
+    if (session?.authenticated) {
+      return next();
+    }
+
+    // Check for token in handshake auth or headers
+    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.substring(7);
+    if (token && validateAuthToken(token)) {
+      return next();
+    }
+
+    next(new Error('Unauthorized'));
+  });
 });
 
 io.on('connection', (socket) => {
   const session = (socket.request as any).session;
+  const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.substring(7);
+  const authenticated = session?.authenticated || (token && validateAuthToken(token));
   
-  if (!session?.authenticated) {
+  if (!authenticated) {
     socket.disconnect();
     return;
   }

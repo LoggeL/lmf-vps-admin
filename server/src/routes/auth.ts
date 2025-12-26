@@ -1,14 +1,19 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import { getSetting, setSetting, isSetupComplete } from '../db';
+import { v4 as uuidv4 } from 'uuid';
+import { getSetting, setSetting, isSetupComplete, createAuthToken, validateAuthToken, deleteAuthToken } from '../db';
 
 const router = Router();
 
 // Check if setup is needed
 router.get('/status', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  const authenticated = !!req.session?.authenticated || (!!token && validateAuthToken(token));
+
   res.json({
     needsSetup: !isSetupComplete(),
-    authenticated: !!req.session?.authenticated
+    authenticated
   });
 });
 
@@ -26,8 +31,11 @@ router.post('/setup', async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   setSetting('admin_password_hash', hash);
 
+  const token = uuidv4();
+  createAuthToken(token);
+  
   req.session!.authenticated = true;
-  res.json({ success: true });
+  res.json({ success: true, token });
 });
 
 // Login
@@ -44,12 +52,21 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid password' });
   }
 
+  const token = uuidv4();
+  createAuthToken(token);
+
   req.session!.authenticated = true;
-  res.json({ success: true });
+  res.json({ success: true, token });
 });
 
 // Logout
 router.post('/logout', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  if (token) {
+    deleteAuthToken(token);
+  }
+  
   req.session?.destroy(() => {});
   res.json({ success: true });
 });

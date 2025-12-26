@@ -33,6 +33,21 @@ CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY, -- OpenCode Session ID (ses_...)
   name TEXT,
   working_dir TEXT,
+  status TEXT DEFAULT 'active',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   last_active DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS session_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT REFERENCES sessions(id) ON DELETE CASCADE,
+  role TEXT,
+  content TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  token TEXT PRIMARY KEY,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME
 );

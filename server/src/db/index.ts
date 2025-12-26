@@ -99,4 +99,28 @@ export function deleteSession(id: string) {
   db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
 }
 
+export function updateSessionStatus(id: string, status: string) {
+  db.prepare('UPDATE sessions SET status = ?, last_active = datetime("now") WHERE id = ?').run(status, id);
+}
+
+export function addSessionMessage(sessionId: string, role: string, content: string) {
+  db.prepare('INSERT INTO session_messages (session_id, role, content) VALUES (?, ?, ?)').run(sessionId, role, content);
+}
+
+// Auth Tokens
+export function createAuthToken(token: string, days = 30): void {
+  db.prepare("INSERT INTO auth_tokens (token, expires_at) VALUES (?, datetime('now', ?))")
+    .run(token, `+${days} days`);
+}
+
+export function validateAuthToken(token: string): boolean {
+  const row = db.prepare('SELECT 1 FROM auth_tokens WHERE token = ? AND expires_at > datetime("now")')
+    .get(token);
+  return !!row;
+}
+
+export function deleteAuthToken(token: string): void {
+  db.prepare('DELETE FROM auth_tokens WHERE token = ?').run(token);
+}
+
 export default db;
