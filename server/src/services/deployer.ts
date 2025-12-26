@@ -165,6 +165,19 @@ export async function deployApp(options: DeployOptions): Promise<string> {
   const stackPath = path.join(STACKS_DIR, name);
   const webhookSecret = uuid();
 
+  // Create app record first (so deployments foreign key works)
+  createApp({
+    id: appId,
+    name,
+    github_url: githubUrl,
+    domain,
+    container_name: name,
+    stack_path: stackPath,
+    port,
+    env_vars: JSON.stringify(envVars),
+    webhook_secret: webhookSecret
+  });
+
   const deploymentId = createDeployment(appId, 'building');
 
   try {
@@ -217,19 +230,6 @@ export async function deployApp(options: DeployOptions): Promise<string> {
     await execAsync(`docker cp /tmp/${configFileName} nginx-proxy-app-1:/data/nginx/proxy_host/${configFileName}`);
     await execAsync(`docker exec nginx-proxy-app-1 nginx -t`);
     await execAsync(`docker exec nginx-proxy-app-1 nginx -s reload`);
-
-    // Save to database
-    createApp({
-      id: appId,
-      name,
-      github_url: githubUrl,
-      domain,
-      container_name: name,
-      stack_path: stackPath,
-      port,
-      env_vars: JSON.stringify(envVars),
-      webhook_secret: webhookSecret
-    });
 
     updateDeployment(deploymentId, 'success');
     log(`✅ Deployed successfully to https://${domain}`);
