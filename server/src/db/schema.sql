@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS session_messages;
-DROP TABLE IF EXISTS sessions;
+-- Schema for LMF VPS Admin
+-- Using CREATE TABLE IF NOT EXISTS to preserve data on restart
 
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

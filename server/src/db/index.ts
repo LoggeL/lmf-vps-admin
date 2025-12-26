@@ -7,7 +7,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-const db = new Database(path.join(DATA_DIR, 'lmf-vps-admin.db'));
+const db = new Database(path.join(DATA_DIR, 'opencode.db'));
 db.pragma('journal_mode = WAL');
 
 // Initialize schema
