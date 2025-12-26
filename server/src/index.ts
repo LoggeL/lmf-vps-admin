@@ -44,11 +44,14 @@ const sessionMiddleware = session({
 });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
 app.use(sessionMiddleware);
 
+// OpenCode proxy MUST be before express.json() to properly forward request bodies
+app.use('/api/opencode', opencodeRoutes);
+
+app.use(express.json());
+
 // API Routes
-app.use('/api/opencode', opencodeRoutes); // Proxy to OpenCode
 app.use('/api/auth', authRoutes);
 app.use('/api/apps', appsRoutes);
 app.use('/api/dns', dnsRoutes);

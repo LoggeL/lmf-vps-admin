@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, User, Bot, Loader2, Terminal, ChevronDown, ChevronRight, Check, X, Code, Search, Eye, Edit3, Brain, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, User, Bot, Loader2, Terminal, ChevronDown, ChevronRight, Check, X, Code, Search, Eye, Edit3, Brain, AlertCircle, RefreshCw, StopCircle, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { api } from '@/lib/api';
@@ -57,7 +57,6 @@ export default function SessionChat() {
   const [processing, setProcessing] = useState(false);
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const prevMessageCountRef = useRef(0);
   const isAtBottomRef = useRef(true);
@@ -71,7 +70,7 @@ export default function SessionChat() {
     const container = messagesContainerRef.current;
     if (!container) return;
     const { scrollTop, scrollHeight, clientHeight } = container;
-    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 300;
   };
 
   useEffect(() => {
@@ -94,12 +93,42 @@ export default function SessionChat() {
     if (!id || !session?.directory) return;
     try {
       const msgs = await api.opencode.getMessages(id, session.directory);
-      setMessages(msgs || []);
+      
+      // Smart merge: preserve optimistic messages until real ones arrive
+      setMessages(prev => {
+        const realMsgs = msgs || [];
+        
+        // Check if we have any temp/optimistic messages
+        const tempMsgs = prev.filter(m => m.info.id.startsWith('temp-'));
+        
+        if (tempMsgs.length === 0) {
+          return realMsgs;
+        }
+        
+        // Check if the temp message content exists in real messages
+        const tempText = tempMsgs[0]?.parts?.[0]?.text;
+        const hasMatchingReal = realMsgs.some((m: Message) => 
+          m.info.role === 'user' && 
+          m.parts?.some((p: MessagePart) => p.type === 'text' && p.text === tempText)
+        );
+        
+        if (hasMatchingReal) {
+          // Real message arrived, use real messages
+          return realMsgs;
+        }
+        
+        // Keep temp messages appended until real ones show up
+        return [...realMsgs, ...tempMsgs];
+      });
+      
       setError(null);
       
       // Check if the last assistant message is still processing
       const lastMsg = msgs?.[msgs.length - 1];
       if (lastMsg?.info?.role === 'assistant' && !lastMsg?.info?.finish) {
+        setProcessing(true);
+      } else if (sending) {
+        // Still waiting for OpenCode to start processing
         setProcessing(true);
       } else {
         setProcessing(false);
@@ -108,7 +137,7 @@ export default function SessionChat() {
       console.error('Failed to fetch messages:', err);
       // Don't clear messages on fetch error, just show warning
     }
-  }, [id, session?.directory]);
+  }, [id, session?.directory, sending]);
 
   useEffect(() => {
     if (!id) return;
@@ -167,41 +196,50 @@ export default function SessionChat() {
     };
     setMessages(prev => [...prev, tempMsg]);
 
-    // Create an AbortController for potential cancellation
-    abortControllerRef.current = new AbortController();
+    // Fire off the message - this runs in background
+    // OpenCode API blocks until complete, so we fire-and-forget and poll for updates
+    api.opencode.sendMessage(id!, session.directory, text)
+      .then(() => {
+        // Message completed, fetch final state
+        fetchMessages();
+      })
+      .catch((err) => {
+        console.error('Message send error:', err);
+        setError(`Failed to send message: ${err.message}`);
+      })
+      .finally(() => {
+        setSending(false);
+        setProcessing(false);
+      });
 
-    try {
-      // Fire off the message - this will block until OpenCode responds
-      // We run it in background and rely on polling to get updates
-      const sendPromise = api.opencode.sendMessage(id!, session.directory, text);
-      
-      // Don't await - let polling pick up the response
-      sendPromise
-        .then(() => {
-          fetchMessages();
-        })
-        .catch((err) => {
-          console.error('Message send error:', err);
-          // Will be picked up by polling anyway
-        })
-        .finally(() => {
-          setSending(false);
-        });
-
-      // Give it a moment then start polling
-      setTimeout(fetchMessages, 500);
-      
-    } catch (err: any) {
-      setError(`Failed to send: ${err.message}`);
-      setSending(false);
-      setProcessing(false);
-    }
+    // Start polling immediately for updates
+    setTimeout(fetchMessages, 300);
   };
 
   const handleRetry = () => {
     setError(null);
     setLoading(true);
     window.location.reload();
+  };
+
+  const handleDeleteSession = async () => {
+    if (!confirm('Are you sure you want to delete this session? This cannot be undone.')) {
+      return;
+    }
+    try {
+      await api.deleteSession(id!);
+      navigate('/sessions');
+    } catch (err: any) {
+      setError(`Failed to delete session: ${err.message}`);
+    }
+  };
+
+  const handleCancelRequest = () => {
+    // Abort the current request by stopping processing state
+    // The actual request will complete in background but we stop waiting
+    setSending(false);
+    setProcessing(false);
+    setError('Request cancelled');
   };
 
   const getToolIcon = (name: string) => {
@@ -279,8 +317,14 @@ export default function SessionChat() {
         </button>
         
         {isExpanded && part.text && (
-          <div className="px-3 py-2 border-t border-purple-700/50 text-sm text-purple-200 whitespace-pre-wrap">
-            {part.text}
+          <div className="px-3 py-2 border-t border-purple-700/50 text-sm text-purple-200 prose prose-invert prose-sm max-w-none
+            prose-p:my-2 prose-headings:my-3 prose-ul:my-2 prose-ol:my-2 
+            prose-li:my-0.5 prose-pre:my-2 prose-code:text-purple-300 
+            prose-pre:bg-purple-900/30 prose-pre:border prose-pre:border-purple-700/50
+            prose-a:text-purple-300 prose-a:no-underline hover:prose-a:underline">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {part.text}
+            </ReactMarkdown>
           </div>
         )}
       </div>
@@ -290,7 +334,7 @@ export default function SessionChat() {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-950">
+      <div className="flex items-center justify-center h-screen -m-6 lg:-m-8 bg-gray-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-400">Loading session...</p>
@@ -302,7 +346,7 @@ export default function SessionChat() {
   // Error state
   if (error && !session) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-950">
+      <div className="flex items-center justify-center h-screen -m-6 lg:-m-8 bg-gray-950">
         <div className="text-center max-w-md px-4">
           <AlertCircle size={48} className="mx-auto mb-4 text-red-500" />
           <h2 className="text-xl font-bold text-white mb-2">Failed to Load Session</h2>
@@ -329,7 +373,7 @@ export default function SessionChat() {
 
   if (!session) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-950">
+      <div className="flex items-center justify-center h-screen -m-6 lg:-m-8 bg-gray-950">
         <div className="text-center">
           <AlertCircle size={48} className="mx-auto mb-4 text-gray-500" />
           <h2 className="text-xl font-bold text-white mb-2">Session Not Found</h2>
@@ -346,7 +390,7 @@ export default function SessionChat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-2rem)] bg-gray-950">
+    <div className="flex flex-col h-[calc(100vh)] -m-6 lg:-m-8 bg-gray-950">
       {/* Header */}
       <div className="flex items-center gap-4 p-4 border-b border-gray-800 bg-gray-900">
         <button
@@ -360,11 +404,22 @@ export default function SessionChat() {
           <p className="text-xs text-gray-500 font-mono truncate">{session.directory}</p>
         </div>
         {processing && (
-          <div className="flex items-center gap-2 text-sm text-yellow-400">
-            <Loader2 size={16} className="animate-spin" />
-            <span className="hidden sm:inline">Processing...</span>
-          </div>
+          <button
+            onClick={handleCancelRequest}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-yellow-600 hover:bg-yellow-700 rounded-lg text-white transition-colors"
+            title="Cancel current request"
+          >
+            <StopCircle size={16} />
+            <span className="hidden sm:inline">Cancel</span>
+          </button>
         )}
+        <button
+          onClick={handleDeleteSession}
+          className="p-2 hover:bg-red-900/50 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
+          title="Delete session"
+        >
+          <Trash2 size={20} />
+        </button>
       </div>
 
       {/* Error banner */}

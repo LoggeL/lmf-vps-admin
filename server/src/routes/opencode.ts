@@ -1,9 +1,13 @@
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import { Router } from 'express';
 import { getOpenCodeUrl } from '../services/opencode';
 import { requireAuth } from '../middleware/auth';
+import express from 'express';
 
 const router = Router();
+
+// Parse JSON for this route since it comes before global express.json()
+router.use(express.json());
 
 // Proxy middleware configuration
 const openCodeProxy = createProxyMiddleware({
@@ -12,15 +16,10 @@ const openCodeProxy = createProxyMiddleware({
   pathRewrite: {
     '^/api/opencode': '' // Remove /api/opencode prefix
   },
-  ws: true, // Enable WebSocket proxying
-  onProxyReq: (proxyReq, req: any, res) => {
-    // Inject directory param if provided in query or headers?
-    // The OpenCode API expects 'directory' query param.
-    // The frontend should send it.
-    
-    // Security: Ensure we are authenticated (handled by requireAuth wrapper)
+  on: {
+    proxyReq: fixRequestBody // Fix body after express.json() parsed it
   },
-  logLevel: 'debug'
+  logger: console
 });
 
 // Apply auth and then proxy

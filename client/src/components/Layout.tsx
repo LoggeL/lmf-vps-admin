@@ -52,9 +52,9 @@ export default function Layout() {
         <Menu size={20} />
       </button>
 
-      {/* Sidebar */}
+      {/* Sidebar - always fixed */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40
+        fixed inset-y-0 left-0 z-40 h-screen
         bg-[#0a0a0f] border-r border-white/10
         transition-all duration-200 flex flex-col
         ${mobileOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -154,8 +154,10 @@ export default function Layout() {
         />
       )}
 
-      {/* Main content */}
-      <main className={`flex-1 p-6 lg:p-8 overflow-auto transition-all duration-200 ml-0 lg:ml-0`}>
+      {/* Main content - offset for fixed sidebar */}
+      <main className={`flex-1 min-h-screen p-6 lg:p-8 transition-all duration-200
+        ${desktopCollapsed ? 'lg:ml-16' : 'lg:ml-64'}
+      `}>
         <Outlet />
       </main>
     </div>

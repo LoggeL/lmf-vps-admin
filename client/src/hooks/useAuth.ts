@@ -29,6 +29,10 @@ export function useAuth() {
 
   useEffect(() => {
     checkAuth();
+    
+    // Periodically check auth status to catch expired sessions
+    const interval = setInterval(checkAuth, 60000); // Check every minute
+    return () => clearInterval(interval);
   }, []);
 
   const login = async (password: string) => {

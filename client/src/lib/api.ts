@@ -16,6 +16,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   // Handle empty responses
   if (res.status === 204) return {} as T;
 
+  // Handle auth errors - redirect to login
+  if (res.status === 401) {
+    // Don't redirect if we're already checking auth status
+    if (!endpoint.includes('/auth/status')) {
+      window.location.href = '/login';
+    }
+    throw new Error('Not authenticated');
+  }
+
   const text = await res.text();
   if (!res.ok) {
     let errorMessage = 'Request failed';
