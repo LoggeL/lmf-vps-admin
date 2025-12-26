@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #d90429;
+  --color-primary-dark: #8b0000;
+  --color-accent: #ee5a6f;
+  --color-bg-dark: #0a0a0f;
+  --color-bg-card: #1a1a2e;
+  --font-heading: 'Barlow Condensed', sans-serif;
+  --font-body: 'Poppins', sans-serif;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Barlow+Condensed:wght@700;800;900&display=swap');
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-dark);
+  color: white;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Brutalist Button Style */
+.btn-brutal {
+  border-radius: 0;
+  border: 2px solid white;
+  box-shadow: 4px 4px 0px var(--color-primary);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  font-family: var(--font-heading);
+  font-weight: bold;
+}
+
+.btn-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--color-primary);
+}
+
+.btn-brutal:active {
+  transform: translate(0px, 0px);
+  box-shadow: 2px 2px 0px var(--color-primary);
+}
+
+/* Card Style */
+.card-brutal {
+  background-color: rgba(26, 26, 46, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  backdrop-filter: blur(10px);
+}

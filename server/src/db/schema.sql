@@ -1,0 +1,38 @@
+DROP TABLE IF EXISTS session_messages;
+DROP TABLE IF EXISTS sessions;
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
+CREATE TABLE IF NOT EXISTS apps (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  github_url TEXT,
+  domain TEXT,
+  container_name TEXT,
+  stack_path TEXT,
+  port INTEGER,
+  env_vars TEXT,
+  webhook_secret TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS deployments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  app_id TEXT REFERENCES apps(id) ON DELETE CASCADE,
+  status TEXT,
+  commit_hash TEXT,
+  logs TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY, -- OpenCode Session ID (ses_...)
+  name TEXT,
+  working_dir TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_active DATETIME
+);
