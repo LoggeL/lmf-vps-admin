@@ -12,6 +12,51 @@ A lightweight web-based administration panel for managing Docker containers, dep
 - **Notifications**: Discord webhook integration for deployment alerts
 - **Webhook Support**: GitHub webhooks for automatic deployments
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["Frontend (React)"]
+        UI[Web UI]
+        WS[WebSocket Client]
+    end
+
+    subgraph Server["Backend (Express)"]
+        API[REST API]
+        SIO[Socket.IO]
+        Auth[Auth Middleware]
+    end
+
+    subgraph Services
+        Docker[Docker Service]
+        CF[Cloudflare API]
+        Discord[Discord Webhooks]
+        OC[OpenCode Server]
+    end
+
+    subgraph External
+        GH[GitHub Webhooks]
+        Containers[Docker Containers]
+        DNS[Cloudflare DNS]
+    end
+
+    subgraph Storage
+        DB[(SQLite DB)]
+    end
+
+    UI --> API
+    WS --> SIO
+    API --> Auth
+    Auth --> Docker
+    Auth --> CF
+    Auth --> Discord
+    Auth --> OC
+    GH -->|Push Events| API
+    Docker --> Containers
+    CF --> DNS
+    API --> DB
+```
+
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS v4, Vite
