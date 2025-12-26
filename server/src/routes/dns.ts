@@ -51,10 +51,10 @@ router.post('/', async (req, res) => {
 
 // Update DNS record
 router.put('/:id', async (req, res) => {
-  const { name, content, proxied } = req.body;
+  const { name, content, type, proxied } = req.body;
 
   try {
-    const record = await updateDnsRecord(req.params.id, { name, content, proxied });
+    const record = await updateDnsRecord(req.params.id, { name, content, type, proxied });
     res.json(record);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

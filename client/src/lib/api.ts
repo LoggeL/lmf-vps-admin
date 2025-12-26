@@ -72,7 +72,7 @@ export const api = {
   getDnsRecords: () => request<any[]>('/dns'),
   createDnsRecord: (data: { name: string; content: string; type?: string; proxied?: boolean }) =>
     request<any>('/dns', { method: 'POST', body: JSON.stringify(data) }),
-  updateDnsRecord: (id: string, data: { name?: string; content?: string; proxied?: boolean }) =>
+  updateDnsRecord: (id: string, data: { name?: string; content?: string; type?: string; proxied?: boolean }) =>
     request<any>(`/dns/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteDnsRecord: (id: string) => request<{ success: boolean }>(`/dns/${id}`, { method: 'DELETE' }),
 

@@ -68,7 +68,7 @@ export async function createDnsRecord(name: string, content: string, type = 'A',
   return data.result;
 }
 
-export async function updateDnsRecord(recordId: string, updates: { name?: string; content?: string; proxied?: boolean }) {
+export async function updateDnsRecord(recordId: string, updates: { name?: string; content?: string; type?: string; proxied?: boolean }) {
   const zoneId = getZoneId();
   if (!zoneId) throw new Error('Cloudflare zone ID not configured');
 
