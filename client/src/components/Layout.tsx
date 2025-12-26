@@ -8,9 +8,11 @@ import {
   LogOut,
   Menu,
   X,
-  Cpu
+  Cpu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 const navItems = [
@@ -23,8 +25,17 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Mobile: overlay sidebar, Desktop: collapsible sidebar
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(() => {
+    // Persist preference
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(desktopCollapsed));
+  }, [desktopCollapsed]);
 
   const handleLogout = async () => {
     await api.logout();
@@ -35,67 +46,116 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-950 flex">
       {/* Mobile menu button */}
       <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800 rounded-lg"
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-800 rounded-lg text-gray-300 hover:text-white"
       >
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        <Menu size={20} />
       </button>
 
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-[#0a0a0f] border-r border-white/10
-        transform transition-transform duration-200
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        bg-[#0a0a0f] border-r border-white/10
+        transition-all duration-200 flex flex-col
+        ${mobileOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${desktopCollapsed ? 'lg:w-16' : 'lg:w-64'}
       `}>
-        <div className="p-6">
-          <h1 className="text-xl font-bold text-primary flex items-center gap-3 font-heading uppercase tracking-wider">
-            <img src="/lmf-logo.svg" alt="LMF" className="w-8 h-8" />
-            LMF VPS Admin
-          </h1>
+        {/* Mobile close button */}
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden absolute top-4 right-4 p-2 hover:bg-gray-800 rounded-lg text-gray-400 hover:text-white"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Logo */}
+        <div className="p-4 mt-10 lg:mt-0">
+          <div className={`flex items-center gap-3 ${desktopCollapsed ? 'lg:justify-center' : ''}`}>
+            <img src="/lmf-logo.svg" alt="LMF" className="w-8 h-8 flex-shrink-0" />
+            <h1 className={`text-xl font-bold text-primary font-heading uppercase tracking-wider whitespace-nowrap overflow-hidden transition-all duration-200
+              ${mobileOpen ? 'opacity-100 w-auto' : 'lg:opacity-0 lg:w-0 opacity-100'}
+              ${desktopCollapsed ? 'lg:hidden' : 'lg:opacity-100 lg:w-auto'}
+            `}>
+              LMF Admin
+            </h1>
+          </div>
         </div>
 
-        <nav className="px-4 space-y-1">
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 px-2 mt-2">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
-              onClick={() => setSidebarOpen(false)}
+              onClick={() => setMobileOpen(false)}
+              title={desktopCollapsed ? label : undefined}
               className={({ isActive }) => `
-                flex items-center gap-3 px-4 py-3 border-l-4 transition-all font-heading font-bold uppercase tracking-wide
+                flex items-center gap-3 py-3 px-3 rounded-lg transition-all font-heading font-bold uppercase tracking-wide
+                ${desktopCollapsed ? 'lg:justify-center' : ''}
                 ${isActive 
-                  ? 'border-primary bg-white/5 text-primary' 
-                  : 'border-transparent text-gray-400 hover:bg-white/5 hover:text-white'}
+                  ? 'bg-primary/10 text-primary border-l-4 border-primary' 
+                  : 'border-l-4 border-transparent text-gray-400 hover:bg-white/5 hover:text-white'}
               `}
             >
-              <Icon size={20} />
-              {label}
+              <Icon size={20} className="flex-shrink-0" />
+              <span className={`whitespace-nowrap overflow-hidden transition-all duration-200
+                ${mobileOpen ? 'opacity-100 w-auto' : ''}
+                ${desktopCollapsed ? 'lg:hidden' : 'lg:opacity-100 lg:w-auto'}
+              `}>
+                {label}
+              </span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4">
+        {/* Bottom section */}
+        <div className="p-2 space-y-1">
+          {/* Desktop collapse toggle */}
+          <button
+            onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+            className={`hidden lg:flex items-center gap-3 py-3 px-3 w-full rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors
+              ${desktopCollapsed ? 'justify-center' : ''}
+            `}
+            title={desktopCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {desktopCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-200
+              ${desktopCollapsed ? 'lg:hidden' : ''}
+            `}>
+              Collapse
+            </span>
+          </button>
+
+          {/* Logout */}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+            title={desktopCollapsed ? 'Logout' : undefined}
+            className={`flex items-center gap-3 py-3 px-3 w-full rounded-lg text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors
+              ${desktopCollapsed ? 'lg:justify-center' : ''}
+            `}
           >
-            <LogOut size={20} />
-            Logout
+            <LogOut size={20} className="flex-shrink-0" />
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-200
+              ${mobileOpen ? 'opacity-100 w-auto' : ''}
+              ${desktopCollapsed ? 'lg:hidden' : ''}
+            `}>
+              Logout
+            </span>
           </button>
         </div>
       </aside>
 
-      {/* Backdrop */}
-      {sidebarOpen && (
+      {/* Mobile backdrop */}
+      {mobileOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Main content */}
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+      <main className={`flex-1 p-6 lg:p-8 overflow-auto transition-all duration-200 ml-0 lg:ml-0`}>
         <Outlet />
       </main>
     </div>
