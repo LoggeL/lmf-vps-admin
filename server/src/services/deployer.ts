@@ -209,10 +209,10 @@ export async function deployApp(options: DeployOptions): Promise<string> {
 
     // Build and start container
     log('Building Docker image...');
-    await execAsync(`docker compose build`, { cwd: stackPath });
+    await execAsync(`docker-compose build`, { cwd: stackPath });
 
     log('Starting container...');
-    await execAsync(`docker compose up -d`, { cwd: stackPath });
+    await execAsync(`docker-compose up -d`, { cwd: stackPath });
 
     // Create DNS record
     log(`Creating DNS record for ${domain}...`);
@@ -268,10 +268,10 @@ export async function updateApp(appId: string, onProgress?: (msg: string) => voi
 
     // Rebuild
     log('Rebuilding...');
-    await execAsync(`docker compose build --no-cache`, { cwd: stackPath });
+    await execAsync(`docker-compose build --no-cache`, { cwd: stackPath });
 
     log('Restarting...');
-    await execAsync(`docker compose up -d`, { cwd: stackPath });
+    await execAsync(`docker-compose up -d`, { cwd: stackPath });
 
     updateDeployment(deploymentId, 'success');
     log('✅ Update complete');

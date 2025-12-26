@@ -25,8 +25,12 @@ FROM node:22-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y python3 make g++ git docker.io procps && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies including docker-compose
+RUN apt-get update && apt-get install -y python3 make g++ git docker.io procps curl && rm -rf /var/lib/apt/lists/*
+
+# Install docker-compose standalone
+RUN curl -SL https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
 
 # Copy server with built client
 COPY --from=builder /app/server ./server
