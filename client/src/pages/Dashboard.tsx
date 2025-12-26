@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, HardDrive, MemoryStick, Box, Activity, Plus, Terminal } from 'lucide-react';
+import { Cpu, HardDrive, MemoryStick, Box, Activity, Plus, MessageSquare } from 'lucide-react';
 import { api } from '@/lib/api';
 import AutoRefreshBar from '@/components/AutoRefreshBar';
 
@@ -9,6 +9,16 @@ interface Stats {
   memory: { total: number; used: number; usagePercent: number };
   disk: { mount: string; size: number; used: number; usagePercent: number }[];
   uptime: number;
+}
+
+interface OpenCodeSession {
+  id: string;
+  title: string;
+  directory: string;
+  time: {
+    created: number;
+    updated: number;
+  };
 }
 
 function formatBytes(bytes: number) {
@@ -22,11 +32,24 @@ function formatUptime(seconds: number) {
   return `${days}d ${hours}h`;
 }
 
+function formatRelativeTime(timestamp: number) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [containers, setContainers] = useState<any[]>([]);
   const [apps, setApps] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<OpenCodeSession[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -50,7 +73,6 @@ export default function Dashboard() {
   }, [fetchData]);
 
   const runningContainers = containers.filter(c => c.state === 'running').length;
-  const activeSessions = sessions.filter((s: any) => s.isActive).length;
 
   return (
     <div className="space-y-6">
@@ -161,28 +183,24 @@ export default function Dashboard() {
         <div className="bg-gray-900 rounded-xl border border-gray-800">
           <div className="p-4 border-b border-gray-800 flex items-center justify-between">
             <h2 className="font-semibold flex items-center gap-2">
-              <Terminal size={18} />
-              OpenCode Sessions ({activeSessions} active)
+              <MessageSquare size={18} />
+              OpenCode Sessions ({sessions.length})
             </h2>
             <Link to="/sessions" className="text-sm text-primary hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-800">
-            {sessions.slice(0, 5).map((session: any) => (
+            {sessions.slice(0, 5).map((session) => (
               <Link
                 key={session.id}
                 to={`/sessions/${session.id}`}
                 className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
               >
-                <div>
-                  <p className="font-medium">{session.name}</p>
-                  <p className="text-sm text-gray-500 font-mono">{session.working_dir}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{session.title || 'Untitled Session'}</p>
+                  <p className="text-sm text-gray-500 font-mono truncate">{session.directory}</p>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs ${
-                  session.isActive
-                    ? 'bg-green-500/10 text-green-500'
-                    : 'bg-gray-500/10 text-gray-500'
-                }`}>
-                  {session.isActive ? 'active' : session.status}
+                <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+                  {formatRelativeTime(session.time?.updated || session.time?.created || Date.now())}
                 </span>
               </Link>
             ))}

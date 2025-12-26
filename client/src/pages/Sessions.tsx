@@ -286,13 +286,13 @@ export default function Sessions() {
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock size={14} />
-                      {formatRelativeTime(session.time.updated)}
+                      {formatRelativeTime(session.time?.updated || session.time?.created || Date.now())}
                     </span>
-                    {session.summary.files > 0 && (
+                    {session.summary?.files > 0 && (
                       <span className="text-xs">
-                        <span className="text-green-400">+{session.summary.additions}</span>
+                        <span className="text-green-400">+{session.summary.additions || 0}</span>
                         {' / '}
-                        <span className="text-red-400">-{session.summary.deletions}</span>
+                        <span className="text-red-400">-{session.summary.deletions || 0}</span>
                         {' in '}
                         <span className="text-gray-300">{session.summary.files} files</span>
                       </span>
