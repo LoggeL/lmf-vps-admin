@@ -126,11 +126,11 @@ export default function Sessions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-white">OpenCode Sessions</h1>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark rounded-lg transition-colors w-full sm:w-auto"
         >
           <Plus size={18} />
           New Session
@@ -217,21 +217,21 @@ export default function Sessions() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => {
                 setShowCreate(false);
                 setInitialPrompt('');
                 setShowModelDropdown(false);
               }}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-white"
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-white order-2 sm:order-1"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={creating}
-              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark disabled:bg-gray-700 rounded-lg transition-colors text-white"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark disabled:bg-gray-700 rounded-lg transition-colors text-white order-1 sm:order-2"
             >
               {creating ? (
                 <>
@@ -269,7 +269,7 @@ export default function Sessions() {
               key={session.id}
               className="bg-gray-900 rounded-xl border border-gray-800 p-5 hover:border-gray-700 transition-colors"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <Link
@@ -279,13 +279,13 @@ export default function Sessions() {
                       {session.title || 'Untitled Session'}
                     </Link>
                   </div>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                    <span className="font-mono flex items-center gap-1">
-                      <FolderOpen size={14} />
-                      {session.directory}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-400">
+                    <span className="font-mono flex items-center gap-1 truncate max-w-full">
+                      <FolderOpen size={14} className="flex-shrink-0" />
+                      <span className="truncate">{session.directory}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock size={14} />
+                      <Clock size={14} className="flex-shrink-0" />
                       {formatRelativeTime(session.time?.updated || session.time?.created || Date.now())}
                     </span>
                     {session.summary?.files > 0 && (
@@ -300,7 +300,7 @@ export default function Sessions() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Link
                     to={`/sessions/${session.id}`}
                     className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors"
